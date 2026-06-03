@@ -1,0 +1,31 @@
+# Web app
+streamlit>=1.36
+
+# LangChain
+langchain-core>=0.2
+langchain-openai>=0.1
+langchain-community>=0.2
+
+# LLM / tokenisation
+openai>=1.40
+tiktoken>=0.7
+
+# Data ingest
+pandas>=2.0
+openpyxl>=3.1
+SQLAlchemy>=2.0
+
+# Persistence
+psycopg2-binary>=2.9
+
+# Configuration
+pydantic>=2.5
+pydantic-settings>=2.2
+python-dotenv>=1.0
+
+# Confidence / uncertainty (BSDetector): NLI model for Observed Consistency.
+# torch+transformers are heavy (~1.4 GB on first model download). CPU works;
+# GPU is optional. sentencepiece is required by the DeBERTa-v3 tokenizer.
+torch>=2.2
+transformers>=4.40
+sentencepiece>=0.1.99
