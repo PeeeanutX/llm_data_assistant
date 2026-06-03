@@ -1,15 +1,5 @@
 # Data Assistant — research PoC
 
-A Streamlit chatbot for a research experiment on whether showing the
-SQL agent's reasoning steps affects how users interact with it. The agent
-answers natural-language questions about an Excel workbook by translating
-them into SQL through a LangChain SQL agent; every interaction is logged
-to PostgreSQL with timing metadata for the A/B comparison.
-
-This is the PoC-appropriate version: deliberately conservative on
-tooling so that the artifact is reproducible by reviewers and survives
-on pinned dependencies for the lifetime of the study (and beyond).
-
 ## Project layout
 
 ```
