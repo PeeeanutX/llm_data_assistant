@@ -171,7 +171,7 @@ If you received the project as a **ZIP file**, right-click it and choose
 **"Extract All…"**, then remember where you put the extracted folder.
 
 If you know how to use **git**, you can instead clone it. Either way, you'll end
-up with a folder named `data_assistant_poc` that contains files like
+up with a folder named `llm_data_assistant` that contains files like
 `streamlit_app.py` and `requirements.txt`.
 
 #### Step 3 — Open the project folder in the terminal
@@ -181,7 +181,7 @@ folder from File Explorer onto the PowerShell window — it will paste the folde
 location for you. Press **Enter**. For example:
 
 ```powershell
-cd "C:\Users\you\Downloads\data_assistant_poc"
+cd "C:\Users\you\Downloads\llm_data_assistant"
 ```
 
 Your prompt should now show that folder's path. **Stay in this folder for all the
@@ -307,7 +307,7 @@ can close the browser tab.
 You don't need to repeat the whole setup. Each time you want to use the app:
 
 1. Open PowerShell.
-2. Go to the project folder (Step 3): `cd "…\data_assistant_poc"`
+2. Go to the project folder (Step 3): `cd "…\llm_data_assistant"`
 3. Turn on the sandbox: `.\.venv\Scripts\Activate.ps1`
 4. Start the app: `streamlit run streamlit_app.py`
 
