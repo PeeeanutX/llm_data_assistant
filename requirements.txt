@@ -24,8 +24,14 @@ pydantic-settings>=2.2
 python-dotenv>=1.0
 
 # Confidence / uncertainty (BSDetector): NLI model for Observed Consistency.
-# torch+transformers are heavy (~1.4 GB on first model download). CPU works;
-# GPU is optional. sentencepiece is required by the DeBERTa-v3 tokenizer.
+# `requests` drives the hosted Inference API backend (NLI_BACKEND=inference)
+# and is always needed.
+requests>=2.31
+
+# Local NLI backend only (NLI_BACKEND=local, the default): torch+transformers
+# are heavy (~1.4 GB on first model download). CPU works; GPU is optional.
+# sentencepiece is required by the DeBERTa-v3 tokenizer. Skip these three if you
+# only use the Inference API backend.
 torch>=2.2
 transformers>=4.40
 sentencepiece>=0.1.99

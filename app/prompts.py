@@ -7,7 +7,7 @@ touching application code, and so changes are easy to review.
 from __future__ import annotations
 
 WELCOME_MESSAGE: str = (
-    "Hello! I am the new AI-powered data assistant designed by Superstore. How may I help you?"
+    "Hello! I am the AI-powered data assistant designed by Superstore. How may I help you?"
 )
 
 NO_EXPLANATION_MESSAGE: str = (

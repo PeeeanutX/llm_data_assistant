@@ -101,7 +101,7 @@ def main() -> int:
     if not api_key:
         print("ERROR: OPENAI_API_KEY is not set (check your .env).", file=sys.stderr)
         return 1
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
     complete = _make_complete_fn(api_key, model)
 
     question = args.question or _DEFAULT_QUESTION

@@ -16,7 +16,7 @@ from openai import BadRequestError, OpenAI
 from app.agent.explainer import StepExplainer
 from app.agent.factory import build_sql_agent
 from app.agent.tokens import TokenBudget
-from app.uncertainty.nli import NliModel, load_nli_model
+from app.uncertainty.nli import load_nli_model
 from app.uncertainty.scorer import ConfidenceScorer
 from app.config import Settings, get_settings
 from app.data_loader import load_excel_to_sqlite
@@ -82,9 +82,25 @@ def _bootstrap() -> tuple[
 
 
 @st.cache_resource(show_spinner="Loading the NLI model (first run downloads it)...")
-def _load_nli(model_name: str) -> NliModel:
-    """Load the NLI model once per process (cached across reruns)."""
-    return load_nli_model(model_name)
+def _load_nli(
+    model_name: str,
+    backend: str,
+    api_token: str | None,
+    endpoint: str | None,
+    timeout: float,
+):
+    """Load the NLI scorer once per process (cached across reruns).
+
+    Args are plain values (not the Settings object) so Streamlit can hash them
+    for the resource cache.
+    """
+    return load_nli_model(
+        model_name,
+        backend=backend,
+        api_token=api_token,
+        endpoint=endpoint,
+        timeout=timeout,
+    )
 
 
 def _make_complete_fn(api_key: str, model: str):
@@ -131,7 +147,16 @@ def _build_confidence_scorer(settings: Settings, database) -> ConfidenceScorer:
         db=database,
         temperature=settings.confidence_sample_temperature,
     )
-    nli = _load_nli(settings.nli_model)
+    hf_token = (
+        settings.hf_api_token.get_secret_value() if settings.hf_api_token else None
+    )
+    nli = _load_nli(
+        settings.nli_model,
+        settings.nli_backend,
+        hf_token,
+        settings.nli_inference_endpoint,
+        settings.nli_inference_timeout,
+    )
     complete_fn = _make_complete_fn(api_key, settings.openai_model)
     return ConfidenceScorer(
         sampling_agent=sampling_agent,
@@ -150,7 +175,7 @@ def main() -> None:
     configure_logging()
 
     st.set_page_config(page_title="Data Assistant")
-    st.title("Data Assistant 📈")
+    st.title("LLM-based Data Assistant")
 
     try:
         agent, repository, explainer, token_budget, scorer = _bootstrap()

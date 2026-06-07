@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # ---- OpenAI ----------------------------------------------------------
     openai_api_key: SecretStr = Field(..., description="OpenAI API key.")
     openai_model: str = Field(
-        default="gpt-4o-mini",
+        default="gpt-5.4-mini",
         description="Model used for both the SQL agent and the step explainer.",
     )
 
@@ -79,10 +79,44 @@ class Settings(BaseSettings):
         ),
     )
     nli_model: str = Field(
-        default="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
+        default="FacebookAI/roberta-large-mnli",
         description=(
-            "HuggingFace NLI model for Observed Consistency. 'base' suits CPU; "
-            "swap to '...xsmall...' for speed or '...large...' on GPU."
+            "HuggingFace NLI model for Observed Consistency. The default is "
+            "served as text-classification, so it works with both backends. "
+            "For the 'local' backend on CPU, the lighter "
+            "'MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli' is a good swap "
+            "(but it is zero-shot-classification on the router, so it is NOT "
+            "usable with the 'inference' backend)."
+        ),
+    )
+    nli_backend: str = Field(
+        default="inference",
+        description=(
+            "Where the NLI model runs: 'local' (torch/transformers on this "
+            "machine) or 'inference' (hosted HuggingFace Inference Providers "
+            "router over HTTP, no torch required). The 'inference' backend "
+            "needs a text-classification NLI model (e.g. roberta-large-mnli); "
+            "zero-shot-classification checkpoints only work with 'local'."
+        ),
+    )
+    hf_api_token: SecretStr | None = Field(
+        default=None,
+        description="HuggingFace API token, used when nli_backend='inference'.",
+    )
+    nli_inference_endpoint: str | None = Field(
+        default=None,
+        description=(
+            "Override URL for the NLI Inference API. Defaults to the "
+            "hf-inference router endpoint for `nli_model` when unset."
+        ),
+    )
+    nli_inference_timeout: float = Field(
+        default=60.0,
+        gt=0.0,
+        description=(
+            "Per-request timeout (seconds) for the NLI Inference API. Generous "
+            "enough to absorb a provider cold start; transient timeouts and "
+            "dropped connections are retried (see InferenceNliModel._post)."
         ),
     )
 

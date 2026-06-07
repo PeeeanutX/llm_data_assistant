@@ -27,14 +27,16 @@ logger = logging.getLogger(__name__)
 TREATMENT_GATED_EXPLANATION: int = 2
 
 # DEV OVERRIDE: when True, ignore the URL ``treatment`` parameter entirely and
-# always gate the explanation behind the button. The explanation then only
-# auto-opens when certainty is below 80%; at 80%+ it stays closed until the
-# user clicks. Set back to False to restore the A/B treatment behaviour.
+# always gate the explanation behind the button. The button is only shown when
+# certainty is below 80%; at 80%+ no button is shown at all. It never
+# auto-opens -- the user must click to reveal the explanation. Set back to
+# False to restore the A/B treatment behaviour.
 _DEV_FORCE_GATED: bool = True
 
-# When True, the Certainty Score shows the numeric "...%" beneath the bar.
-# Set to False to hide the number and show only the colored progress bar.
-SHOW_CERTAINTY_PERCENT: bool = False
+# Certainty below this percentage offers a (collapsed) explanation button;
+# at or above it, no button is shown. The certainty score itself is never
+# surfaced in the UI -- it is only computed, logged, and persisted (backend).
+CERTAINTY_BUTTON_THRESHOLD: float = 85.0
 
 
 def _is_gated(treatment: int | None) -> bool:
@@ -42,6 +44,19 @@ def _is_gated(treatment: int | None) -> bool:
     if _DEV_FORCE_GATED:
         return True
     return treatment == TREATMENT_GATED_EXPLANATION
+
+
+def _should_offer_button(confidence_percent: float | None) -> bool:
+    """Whether to show the explanation button for a gated answer.
+
+    Only low-certainty answers (below ``CERTAINTY_BUTTON_THRESHOLD``) get a
+    button; high-certainty answers -- and answers without a score, e.g.
+    greetings -- show nothing.
+    """
+    return (
+        confidence_percent is not None
+        and confidence_percent < CERTAINTY_BUTTON_THRESHOLD
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -56,8 +71,6 @@ def render_chat_history(
     for message in st.session_state.get("messages", []):
         if "expander" not in message:
             st.chat_message(message["role"]).write(message["content"])
-            if message["role"] == "assistant" and message.get("confidence_percent") is not None:
-                render_confidence_meter(message["confidence_percent"])
             continue
         _render_explanation_message(message, gated=gated, repository=repository)
 
@@ -72,19 +85,22 @@ def _render_explanation_message(
     content: str = message["content"]
     revealed = st.session_state.get(_expander_state_key(interaction_id), False)
     confidence_percent = message.get("confidence_percent")
-    auto_open = confidence_percent is not None and confidence_percent < 80
 
-    if not gated or revealed or auto_open:
-        with st.expander(label, expanded=not gated or revealed or auto_open):
+    # Non-gated control, or the user already revealed it -> show the explanation.
+    if not gated or revealed:
+        with st.expander(label, expanded=True):
             st.write(content)
         return
 
-    st.button(
-        "See explanation",
-        key=f"button_{interaction_id}",
-        on_click=_handle_explanation_click,
-        args=(repository, interaction_id),
-    )
+    # Gated: only low-certainty answers offer the (collapsed) button. It stays
+    # user-invoked; high-certainty answers show nothing.
+    if _should_offer_button(confidence_percent):
+        st.button(
+            "See explanation",
+            key=f"button_{interaction_id}",
+            on_click=_handle_explanation_click,
+            args=(repository, interaction_id),
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -127,10 +143,8 @@ def render_new_turn(
         confidence = _compute_confidence(
             scorer, user_query, response_content, evidence
         )
-        if confidence is not None and confidence_view == "numerical":
-            render_confidence_meter(confidence.percent)
-            # Attach to the just-appended assistant message for history replay.
-            st.session_state.messages[-1]["confidence_percent"] = confidence.percent
+        # The certainty score is intentionally never rendered in the UI; it is
+        # only logged and persisted (backend). It just gates the button below.
     explanation_content, prettified_steps = _build_explanation(
         inter_steps=inter_steps, explainer=explainer
     )
@@ -148,16 +162,18 @@ def render_new_turn(
         }
     )
 
-    # Low-certainty answers (<80%) auto-open the explanation even under the
-    # gated treatment; otherwise the explanation stays gated behind the button.
-    auto_open_explanation = confidence is not None and confidence.percent < 80
-    if _is_gated(treatment) and not auto_open_explanation:
-        explanation_button_displayed_time = pd.Timestamp.now()
-        _render_gated_explanation(
-            question_id=question_id,
-            content=explanation_content,
-            repository=repository,
-        )
+    # Gated: only low-certainty answers (<80%) get a "See explanation" button,
+    # and it stays collapsed until the user clicks it (user-invoked). High-
+    # certainty answers (>=80%) show no button at all. The non-gated control
+    # always shows the explanation.
+    if _is_gated(treatment):
+        if _should_offer_button(confidence.percent if confidence else None):
+            explanation_button_displayed_time = pd.Timestamp.now()
+            _render_gated_explanation(
+                question_id=question_id,
+                content=explanation_content,
+                repository=repository,
+            )
     else:
         explanation_displayed_time = pd.Timestamp.now()
         with st.expander("See explanation", expanded=True):
@@ -192,36 +208,6 @@ def _append_and_render_user_message(user_query: str) -> None:
 def _append_and_render_assistant_message(content: str) -> None:
     st.session_state.messages.append({"role": "assistant", "content": content})
     st.chat_message("assistant").write(content)
-
-
-def render_confidence_meter(percent: float) -> None:
-    """Render a compact certainty meter under the assistant's answer."""
-    p = max(0.0, min(100.0, float(percent)))
-    if p >= 80:
-        bar_color = "#22c55e"  # green
-    elif p >= 50:
-        bar_color = "#eab308"  # yellow
-    else:
-        bar_color = "#ef4444"  # red
-    percent_label = (
-        f"""
-          <div style="margin-top:0.25rem;font-size:1.25rem;font-weight:700;
-                      color:rgba(2,6,23,0.85);">{p:.0f}%</div>"""
-        if SHOW_CERTAINTY_PERCENT
-        else ""
-    )
-    st.markdown(
-        f"""
-        <div style="margin:0.1rem 0 0.6rem 0;">
-          <div style="font-size:0.8rem;color:rgba(2,6,23,0.55);margin-bottom:0.25rem;">Certainty</div>
-          <div style="width:280px;max-width:62vw;height:10px;border-radius:999px;
-                      background:rgba(2,6,23,0.08);overflow:hidden;">
-            <div style="height:100%;width:{p:.1f}%;border-radius:999px;background:{bar_color};"></div>
-          </div>{percent_label}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def _compute_confidence(

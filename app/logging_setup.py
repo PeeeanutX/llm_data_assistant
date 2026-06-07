@@ -37,5 +37,9 @@ def configure_logging(level: int = logging.INFO) -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
+    # transformers spams a "Accessing `__path__` from ..." deprecation warning
+    # for every image-processing submodule when Streamlit's file watcher walks
+    # loaded modules. These are harmless; mute everything below ERROR.
+    logging.getLogger("transformers").setLevel(logging.ERROR)
 
     _configured = True

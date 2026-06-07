@@ -14,6 +14,7 @@ consistency must measure the agent's agreement with itself.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, List
 
@@ -76,10 +77,23 @@ class ConfidenceScorer:
         passed to self-reflection so S judges faithfulness to the query result
         rather than external verifiability.
         """
+        total_start = time.perf_counter()
+
+        # Observed Consistency: generating the k resamples is the dominant cost
+        # (k agent invocations); the NLI comparison is timed separately because
+        # on the 'inference' backend it is an HTTP round-trip.
+        sampling_start = time.perf_counter()
         samples = self._generate_samples(question)
+        sampling_seconds = time.perf_counter() - sampling_start
+
+        nli_start = time.perf_counter()
         observed = observed_consistency(
             reference_answer, samples, self._nli, alpha=self._alpha
         )
+        nli_seconds = time.perf_counter() - nli_start
+
+        # Self-Reflection Certainty: `rounds` LLM rating calls.
+        reflection_start = time.perf_counter()
         reflection = self_reflection_certainty(
             question,
             reference_answer,
@@ -87,9 +101,20 @@ class ConfidenceScorer:
             rounds=self._rounds,
             evidence=evidence,
         )
+        reflection_seconds = time.perf_counter() - reflection_start
+
         confidence = combine_confidence(observed, reflection, beta=self._beta)
+        total_seconds = time.perf_counter() - total_start
         logger.info(
-            "Confidence: O=%.3f S=%.3f C=%.3f", observed, reflection, confidence
+            "Confidence: O=%.3f S=%.3f C=%.3f | timings(s): "
+            "observed_sampling=%.3f observed_nli=%.3f reflection=%.3f total=%.3f",
+            observed,
+            reflection,
+            confidence,
+            sampling_seconds,
+            nli_seconds,
+            reflection_seconds,
+            total_seconds,
         )
         return ConfidenceResult(
             percent=confidence * 100.0,
