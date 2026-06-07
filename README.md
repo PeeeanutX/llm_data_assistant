@@ -14,9 +14,9 @@ the answer, and it quietly keeps track of how confident it is in each reply.
 
 - [What it can do](#what-it-can-do)
 - [What it looks like](#what-it-looks-like)
-- [How it works (the simple version)](#how-it-works-the-simple-version)
+- [How it works](#how-it-works)
 - [Architecture](#architecture)
-- [⭐ Setup guide for non-technical users](#-setup-guide-for-non-technical-users)
+- [⭐ Setup guide](#-setup-guide)
   - [Before you start: what you'll need](#before-you-start-what-youll-need)
   - [Step-by-step setup](#step-by-step-setup)
   - [Starting the app again next time](#starting-the-app-again-next-time)
@@ -29,11 +29,8 @@ the answer, and it quietly keeps track of how confident it is in each reply.
   - [Configuration reference](#configuration-reference)
   - [How the explanation is shown (and the confidence gate)](#how-the-explanation-is-shown-and-the-confidence-gate)
   - [The A/B experiment URL parameters](#the-ab-experiment-url-parameters)
-  - [Confidence scoring (BSDetector)](#confidence-scoring-bsdetector)
-  - [What gets logged to the database](#what-gets-logged-to-the-database)
+  - [Confidence scoring](#confidence-scoring)
   - [Testing](#testing)
-  - [Notes on what changed from the original script](#notes-on-what-changed-from-the-original-script)
-
 ---
 
 ## What it can do
