@@ -28,7 +28,6 @@ the answer, and it quietly keeps track of how confident it is in each reply.
   - [Project layout](#project-layout)
   - [Configuration reference](#configuration-reference)
   - [How the explanation is shown (and the confidence gate)](#how-the-explanation-is-shown-and-the-confidence-gate)
-  - [The A/B experiment URL parameters](#the-ab-experiment-url-parameters)
   - [Confidence scoring](#confidence-scoring)
   - [Testing](#testing)
 ---
